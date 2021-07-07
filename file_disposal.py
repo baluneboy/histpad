@@ -4,7 +4,7 @@ import os
 import numpy as np
 import scipy.io as sio
 from matplotlib import pyplot
-from ugaudio.load import padread
+from ugaudio.load import pad_read
 
 class DailyMinMaxFileDisposal(object):
     """Get min/max for each of X-, Y-, and Z-axis."""
@@ -15,7 +15,7 @@ class DailyMinMaxFileDisposal(object):
     
     def run(self):
         # read data from file (not using double type here like MATLAB would, so we get courser demeaning)
-        B = padread(self.filename)
+        B = pad_read(self.filename)
         
         # demean each column
         A = B - B.mean(axis=0)
@@ -41,7 +41,7 @@ class DailyOtoMinMaxFileDisposal(object):
     
     def run(self):
         # read data from file (not using double type here like MATLAB would, so we get courser demeaning)
-        B = padread(self.filename)
+        B = pad_read(self.filename)
         
         # demean each column
         A = B - B.mean(axis=0)
@@ -70,7 +70,7 @@ class DailyHistFileDisposal(object):
     
     def run(self):
         # read data from file (not using double type here like MATLAB would, so we get courser demeaning)
-        B = padread(self.filename)
+        B = pad_read(self.filename)
         
         # demean each column
         A = B - B.mean(axis=0)
@@ -102,7 +102,7 @@ class DailyOtoHistFileDisposal(object):
     
     def run(self):
         # read data from file (not using double type here like MATLAB would, so we get courser demeaning)
-        B = padread(self.filename)
+        B = pad_read(self.filename)
         
         # demean each column
         A = B - B.mean(axis=0)

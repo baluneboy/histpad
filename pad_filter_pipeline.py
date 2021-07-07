@@ -53,11 +53,14 @@ class PadHeader(object):
             if self.reobj.match(f):
                 yield f
 
-# A callable class for PAD data file
+
 class PadData(object):
     """A callable class for PAD data file."""
     
-    def __init__(self, regex=_PADDATAFILES_PATTERN):
+    def __init__(self, regex=_PADDATAFILES_PATTERN, base_dir='/misc/yoda/pub/pad'):
+        self.base_dir = base_dir
+        if self.base_dir not in regex:
+           regex = regex.replace('/misc/yoda/pub/pad', self.base_dir)
         self.regex = regex
         self.reobj = re.compile(regex)
         
@@ -70,7 +73,7 @@ class PadData(object):
     def __str__(self):
         return 'is a PAD file'
 
-# A callable class for PAD histogram mat file for particular day-sensor
+
 class PadHistMat(object):
     """A callable class for PAD histogram mat file for particular day-sensor."""
     
@@ -86,20 +89,24 @@ class PadHistMat(object):
                 
     def __str__(self):
         return 'is a PAD hist mat file'
-        
-# A callable class for PAD data file for particular day-sensor
+
+
 class PadDataDaySensor(PadData):
     """A callable class for PAD data file for particular day-sensor."""
     
-    def __init__(self, daystr, sensor):
+    def __init__(self, daystr, sensor, base_dir='/misc/yoda/pub/pad'):
         self.date = parser.parse(daystr).date()
         self.daystr = self.date.strftime('%Y_%m_%d')
         self.sensor = sensor
+        self.base_dir = base_dir
         regex = self._get_regex_pat()
-        super(PadDataDaySensor, self).__init__(regex=regex)
+        super(PadDataDaySensor, self).__init__(regex=regex, base_dir=self.base_dir)
 
     def _get_regex_pat(self):
-        pattern = _PADPATH_PATTERN + "/(?P<subdir>.*_(accel|rad)_(?P<sensor>%s))/" % self.sensor + \
+        pad_path_pat = _PADPATH_PATTERN
+        if self.base_dir not in pad_path_pat:
+            pad_path_pat = pad_path_pat.replace('/misc/yoda/pub/pad', self.base_dir)
+        pattern = pad_path_pat + "/(?P<subdir>.*_(accel|rad)_(?P<sensor>%s))/" % self.sensor + \
             "(?P<start>%s_\d{2}_\d{2}_\d{2}\.\d{3})" % self.daystr + \
             "(?P<pm>[\+\-])" + \
             "(?P<stop>\d{4}_\d{2}_\d{2}_\d{2}_\d{2}_\d{2}\.\d{3})" + \
@@ -109,12 +116,13 @@ class PadDataDaySensor(PadData):
     def __str__(self):
         return 'is a PAD file on %s for %s' % (self.date, self.sensor)
 
-# A callable class for PAD data file for particular day-sensor that has where clause for header fields
+
 class PadDataDaySensorWhere(PadDataDaySensor):
     """A callable class for PAD data file for particular day-sensor that has where clause for header fields."""
 
-    def __init__(self, daystr, sensor, where={'CutoffFreq': 200}):
-        super(PadDataDaySensorWhere, self).__init__(daystr, sensor)
+    def __init__(self, daystr, sensor, where={'CutoffFreq': 200}, base_dir='/misc/yoda/pub/pad'):
+        self.base_dir = base_dir
+        super(PadDataDaySensorWhere, self).__init__(daystr, sensor, base_dir=self.base_dir)
         self.where = where
     
     def __call__(self, file_list):
@@ -156,10 +164,12 @@ class PadDataDaySensorWhere(PadDataDaySensor):
 
 
 class PadDataDaySensorWhereMinDur(PadDataDaySensorWhere):
-    """A callable class for PAD data file for particular day-sensor that has where clause for header fields and some minimum duration too."""
+    """A callable class for PAD data file for particular day-sensor that has where clause for header fields and some
+    minimum duration too."""
 
-    def __init__(self, daystr, sensor, where={'SampleRate': 500.0}, mindur=5):
-        super(PadDataDaySensorWhereMinDur, self).__init__(daystr, sensor, where=where)
+    def __init__(self, daystr, sensor, where={'SampleRate': 500.0}, mindur=5, base_dir='/misc/yoda/pub/pad'):
+        self.base_dir = base_dir
+        super(PadDataDaySensorWhereMinDur, self).__init__(daystr, sensor, where=where, base_dir=self.base_dir)
         self.mindur = mindur
     
     def __call__(self, file_list):
@@ -243,9 +253,9 @@ def demo_one(sensor='121f03', file_getter=get_pad_day_sensor_files):
             # Run routine to filter files
             #my_files = get_pad_day_sensor_files(files, day, sensor)
             my_files = file_getter(files, day, sensor)
-            print '%s gives %d files' % (day, len(my_files))
+            print('%s gives %d files' % (day, len(my_files)))
         else:
-            print '%s gives NO FILES' % day
+            print('%s gives NO FILES' % day)
 
 
 def demo_padrunhist(start, stop, sensor='121f03', file_getter=get_pad_day_sensor_files_mindur):
@@ -268,9 +278,9 @@ def demo_padrunhist(start, stop, sensor='121f03', file_getter=get_pad_day_sensor
                     
             # Run routine to filter files
             my_files = file_getter(files, day, sensor)
-            print '%s gives %d files' % (day, len(my_files))
+            print('%s gives %d files' % (day, len(my_files)))
         else:
-            print '%s gives NO FILES' % day
+            print('%s gives NO FILES' % day)
             
             
 def get_pad_day_sensor_where_files(files, day, sensor, where, mindur=5):
@@ -317,14 +327,14 @@ def do_dailyhistpad(start, stop, sensor='121f03', where={'CutoffFreq': 200}, bin
 
         # Get list of PAD data files for particular day and sensor
         pth = os.path.join( datetime_to_ymd_path(d), sensor2subdir(sensor) )
-        print pth
+        print(pth)
         if os.path.exists(pth):
             tmp = os.listdir(pth)
             files = [ os.path.join(pth, f) for f in tmp ]
 
             # Run routine to filter files
             my_files = get_pad_day_sensor_where_files(files, day, sensor, where, mindur)
-            print '%s gives %d files' % (day, len(my_files))
+            print('%s gives %d files' % (day, len(my_files)))
             
             len_files = len(my_files)
             if len_files > 0:
@@ -338,7 +348,7 @@ def do_dailyhistpad(start, stop, sensor='121f03', where={'CutoffFreq': 200}, bin
 
                 dh = DailyHistFileDisposal(my_files[0], bins, vecmag_bins)
                 Nx, Ny, Nz, Nv = dh.run()
-                print '>> completed %s' % my_files[0]
+                print('>> completed %s' % my_files[0])
                 for f in my_files[1:]:
                     dh = DailyHistFileDisposal(f, bins, vecmag_bins)
                     nx, ny, nz, nv = dh.run()
@@ -346,11 +356,11 @@ def do_dailyhistpad(start, stop, sensor='121f03', where={'CutoffFreq': 200}, bin
                     Ny += ny
                     Nz += nz
                     Nv += nv
-                    print '>> completed %s' % f
+                    print('>> completed %s' % f)
                 sio.savemat(outfile, {'Nx': Nx, 'Ny': Ny, 'Nz': Nz, 'Nv': Nv})
-                print
+                print()
         else:
-            print '%s gives NO FILES' % day
+            print('%s gives NO FILES' % day)
         d = nd.next()
 
 def demo_dailyminmaxpad(sensor='121f04', where={'CutoffFreq': 200}):
@@ -379,7 +389,7 @@ def demo_dailyminmaxpad(sensor='121f04', where={'CutoffFreq': 200}):
 
             # Run routine to filter files
             my_files = get_pad_day_sensor_where_files(files, day, sensor, where)
-            print '%s gives %d files' % (day, len(my_files))
+            print('%s gives %d files' % (day, len(my_files)))
 
             len_files = len(my_files)
             if len_files > 0:
@@ -403,13 +413,13 @@ def demo_dailyminmaxpad(sensor='121f04', where={'CutoffFreq': 200}):
                     ymax = y2 if y2 > ymax else ymax
                     zmin = z1 if z1 < zmin else zmin
                     zmax = z2 if z2 > zmax else zmax
-                    print '>> completed %s' % f
+                    print('>> completed %s' % f)
                 sio.savemat(outfile, {'xmin': xmin, 'xmax': xmax,
                                       'ymin': ymin, 'ymax': ymax,
                                       'zmin': zmin, 'zmax': zmax})
-                print
+                print()
         else:
-            print '%s gives NO FILES' % day
+            print('%s gives NO FILES' % day)
         d = nd.next()
 
 
@@ -435,9 +445,10 @@ def demo_three(sensor='es03', where={'CutoffFreq': 101.4}):
 
             # Run routine to filter files
             my_files = get_pad_day_sensor_where_files(files, day, sensor, where)
-            print '%s gives %d files' % (day, len(my_files))
+            print('%s gives %d files' % (day, len(my_files)))
         else:
-            print '%s gives NO FILES' % day
+            print('%s gives NO FILES' % day)
+
 
 def parse_day(f):
     result = None
